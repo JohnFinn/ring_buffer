@@ -8,7 +8,7 @@ impl<T> std::ops::Index<usize> for RingBuffer<T> {
     type Output = T;
 
     fn index(&self, idx: usize) -> &Self::Output {
-        self.data_[self.head_].as_ref().unwrap()
+        self.data_[self.head_ + idx % self.len_].as_ref().unwrap()
     }
 
 }
@@ -17,6 +17,21 @@ impl<T: Clone> RingBuffer<T> {
 
     fn with_capacity(n : usize) -> RingBuffer<T> {
         RingBuffer { data_ : vec![None; n], head_: 0, len_: 0 }
+    }
+
+    fn resize2x_(&mut self) {
+        let new_size = if self.data_.len() > 0 { self.len_ * 2 } else { 1 };
+        let mut new_data = Vec::<Option<T>>::with_capacity(new_size);
+        for idx in 0..self.len_ {
+            // hope this would avoid expensive copying but not sure
+            let mut elem : Option<T> = None;
+            std::mem::swap(&mut self.data_[self.head_ + idx % self.len_], &mut elem);
+            new_data.push(elem);
+        }
+        new_data.resize(new_size, None);
+        // TODO make sure this won't copy anything and do some kind of swap with instead
+        self.data_ = new_data;
+        self.head_ = 0;
     }
 
     fn push(&mut self, val: T) {
