@@ -8,9 +8,8 @@ impl<T> std::ops::Index<usize> for RingBuffer<T> {
     type Output = T;
 
     fn index(&self, idx: usize) -> &Self::Output {
-        self.data_[self.head_ + idx % self.len_].as_ref().unwrap()
+        self.index_(idx).as_ref().unwrap()
     }
-
 }
 
 impl<T> RingBuffer<T> {
@@ -21,32 +20,55 @@ impl<T> RingBuffer<T> {
         RingBuffer { data_ : data, head_: 0, len_: 0 }
     }
 
+    fn index_mut_(&mut self, idx: usize) -> &mut Option<T> {
+        &mut self.data_[self.head_ + idx % self.len_]
+    }
+
+    fn index_(&self, idx: usize) -> &Option<T> {
+        &self.data_[self.head_ + idx % self.len_]
+    }
+
     fn resize2x_(&mut self) {
         let new_size = if self.data_.len() > 0 { self.len_ * 2 } else { 1 };
         let mut new_data = Vec::<Option<T>>::with_capacity(new_size);
         for idx in 0..self.len_ {
             // hope this would avoid expensive copying but not sure
             let mut elem : Option<T> = None;
-            std::mem::swap(&mut self.data_[self.head_ + idx % self.len_], &mut elem);
+            std::mem::swap(self.index_mut_(idx), &mut elem);
             new_data.push(elem);
         }
         new_data.resize_with(new_size, || None);
-        // TODO make sure this won't copy anything and do some kind of swap with instead
+        // TODO make sure this doesn't copy anything
         self.data_ = new_data;
         self.head_ = 0;
     }
 
-    fn push(&mut self, val: T) {
+    fn push_back(&mut self, val: T) {
         if self.len_ == self.data_.len() {
             self.resize2x_();
         }
-
+        let mut val = Some(val);
+        std::mem::swap(self.index_mut_(self.len_), &mut val);
+        self.len_ += 1;
     }
 
-    fn pop(&mut self) {
-        todo!()
+    fn push_front(&mut self, val: T) {
+        if self.len_ == self.data_.len() {
+            self.resize2x_();
+        }
+        let mut val = Some(val);
+        self.head_ = if self.head_ > 0 { self.head_ - 1 } else { self.len_ - 1 };
+        std::mem::swap(self.index_mut_(0), &mut val);
+        self.len_ += 1;
     }
 
+    fn pop_back(&mut self) {
+        
+    }
+
+    fn pop_front(&mut self) {
+        
+    }
 }
 
 struct RingBufferIterator<'a, T> {
