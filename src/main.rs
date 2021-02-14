@@ -21,11 +21,13 @@ impl<T> RingBuffer<T> {
     }
 
     fn index_mut_(&mut self, idx: usize) -> &mut Option<T> {
-        &mut self.data_[self.head_ + idx % self.len_]
+        let capacity = self.data_.len();
+        &mut self.data_[(self.head_ + idx) % capacity]
     }
 
     fn index_(&self, idx: usize) -> &Option<T> {
-        &self.data_[self.head_ + idx % self.len_]
+        let capacity = self.data_.len();
+        &self.data_[(self.head_ + idx) % capacity]
     }
 
     fn resize2x_(&mut self) {
@@ -62,12 +64,19 @@ impl<T> RingBuffer<T> {
         self.len_ += 1;
     }
 
-    fn pop_back(&mut self) {
-        
+    fn pop_back(&mut self) -> T {
+        let mut result = None;
+        std::mem::swap(self.index_mut_(self.len_ - 1), &mut result);
+        self.len_ -= 1;
+        return result.unwrap();
     }
 
-    fn pop_front(&mut self) {
-        
+    fn pop_front(&mut self) -> T {
+        let mut result = None;
+        std::mem::swap(self.index_mut_(self.len_ - 1), &mut result);
+        self.len_ -= 1;
+        self.head_ = (self.head_ + 1) % self.data_.len();
+        return result.unwrap();
     }
 }
 
